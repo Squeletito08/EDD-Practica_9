@@ -1,7 +1,10 @@
 package mx.unam.ciencias.edd;
 
+import java.beans.VetoableChangeListenerProxy;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+
+import mx.unam.ciencias.edd.ArbolRojinegro.VerticeRojinegro;
 
 /**
  * Clase para gráficas. Una gráfica es un conjunto de vértices y aristas, tales
@@ -17,17 +20,17 @@ public class Grafica<T> implements Coleccion<T> {
 
         /* Construye un nuevo iterador, auxiliándose de la lista de vértices. */
         public Iterador() {
-            // Aquí va su código.
+            iterador = vertices.iterator(); 
         }
 
         /* Nos dice si hay un siguiente elemento. */
         @Override public boolean hasNext() {
-            // Aquí va su código.
+            return iterador.hasNext(); 
         }
 
         /* Regresa el siguiente elemento. */
         @Override public T next() {
-            // Aquí va su código.
+            return iterador.next().elemento; 
         }
     }
 
@@ -48,42 +51,51 @@ public class Grafica<T> implements Coleccion<T> {
 
         /* Crea un nuevo vértice a partir de un elemento. */
         public Vertice(T elemento) {
-            // Aquí va su código.
+            this.elemento = elemento; 
+            color = Color.NINGUNO; 
+            vecinos = new Lista<Vecino>();
         }
 
         /* Regresa el elemento del vértice. */
         @Override public T get() {
-            // Aquí va su código.
+            return elemento; 
         }
 
         /* Regresa el grado del vértice. */
         @Override public int getGrado() {
-            // Aquí va su código.
+            return vecinos.getLongitud(); 
         }
 
         /* Regresa el color del vértice. */
         @Override public Color getColor() {
-            // Aquí va su código.
+            return color; 
         }
 
         /* Regresa un iterable para los vecinos. */
         @Override public Iterable<? extends VerticeGrafica<T>> vecinos() {
-            // Aquí va su código.
+            return vecinos; 
         }
 
         /* Define el índice del vértice. */
         @Override public void setIndice(int indice) {
-            // Aquí va su código.
+            this.indice = indice;
         }
 
         /* Regresa el índice del vértice. */
         @Override public int getIndice() {
-            // Aquí va su código.
+            return indice; 
         }
 
         /* Compara dos vértices por distancia. */
         @Override public int compareTo(Vertice vertice) {
-            // Aquí va su código.
+
+            if(distancia > vertice.distancia)
+                return 1; 
+
+            if(distancia < vertice.distancia)
+                return -1; 
+            
+            return 0;
         }
     }
 
@@ -98,27 +110,28 @@ public class Grafica<T> implements Coleccion<T> {
         /* Construye un nuevo vecino con el vértice recibido como vecino y el
          * peso especificado. */
         public Vecino(Vertice vecino, double peso) {
-            // Aquí va su código.
+            this.vecino = vecino; 
+            this.peso = peso; 
         }
 
         /* Regresa el elemento del vecino. */
         @Override public T get() {
-            // Aquí va su código.
+            return vecino.elemento; 
         }
 
         /* Regresa el grado del vecino. */
         @Override public int getGrado() {
-            // Aquí va su código.
+            return vecino.getGrado(); 
         }
 
         /* Regresa el color del vecino. */
         @Override public Color getColor() {
-            // Aquí va su código.
+            return vecino.color; 
         }
 
         /* Regresa un iterable para los vecinos del vecino. */
         @Override public Iterable<? extends VerticeGrafica<T>> vecinos() {
-            // Aquí va su código.
+            return vecino.vecinos();
         }
     }
 
@@ -139,7 +152,7 @@ public class Grafica<T> implements Coleccion<T> {
      * Constructor único.
      */
     public Grafica() {
-        // Aquí va su código.
+        vertices = new Lista<Vertice>();
     }
 
     /**
@@ -148,7 +161,7 @@ public class Grafica<T> implements Coleccion<T> {
      * @return el número de elementos en la gráfica.
      */
     @Override public int getElementos() {
-        // Aquí va su código.
+        return vertices.getLongitud();
     }
 
     /**
@@ -156,7 +169,7 @@ public class Grafica<T> implements Coleccion<T> {
      * @return el número de aristas.
      */
     public int getAristas() {
-        // Aquí va su código.
+        return aristas; 
     }
 
     /**
@@ -166,7 +179,11 @@ public class Grafica<T> implements Coleccion<T> {
      *         la gráfica.
      */
     @Override public void agrega(T elemento) {
-        // Aquí va su código.
+        if(elemento == null || contiene(elemento))
+            throw new IllegalArgumentException("El vertice ya está en la gráfica");
+        
+        Vertice vertice = new Vertice(elemento);
+        vertices.agregaFinal(vertice);
     }
 
     /**
@@ -179,7 +196,25 @@ public class Grafica<T> implements Coleccion<T> {
      *         igual a b.
      */
     public void conecta(T a, T b) {
-        // Aquí va su código.
+        if(!(contiene(a) && contiene(b)))
+            throw new NoSuchElementException("Los vertices a conectar no están en la grafica");
+
+        if(a == b)
+            throw new IllegalArgumentException("No se puede conectar un vertice consigo mismo");
+
+        if(sonVecinos(a, b))
+            throw new IllegalArgumentException("No se pueden conectar 2 vertices ya conectados");
+
+        Vertice verticeA = (Vertice)vertice(a);
+        Vertice verticeB = (Vertice)vertice(b);
+
+        Vecino vecinoA = new Vecino(verticeA, 1);
+        Vecino vecinoB = new Vecino(verticeB, 1);
+
+        verticeA.vecinos.agregaFinal(vecinoB);
+        verticeB.vecinos.agregaFinal(vecinoA);
+
+        aristas++;
     }
 
     /**
@@ -193,7 +228,32 @@ public class Grafica<T> implements Coleccion<T> {
      *         igual a b, o si el peso es no positivo.
      */
     public void conecta(T a, T b, double peso) {
-        // Aquí va su código.
+
+        if(!contiene(a))
+            throw new NoSuchElementException("El vertice " + a + " no está en la grafica");
+
+        if(!contiene(b))
+            throw new NoSuchElementException("El vertice " + b + " no está en la grafica");
+
+        if(a == b)
+            throw new IllegalArgumentException("No se puede conectar un vertice consigo mismo");
+
+        if(sonVecinos(a, b))
+            throw new IllegalArgumentException("No se pueden conectar 2 vertices ya conectados");
+
+        if(peso <= 0)
+            throw new IllegalArgumentException("No se pueden conectar 2 vertices con peso menor o igual a 0");
+
+        Vertice verticeA = (Vertice)vertice(a);
+        Vertice verticeB = (Vertice)vertice(b);
+
+        Vecino vecinoA = new Vecino(verticeA, peso);
+        Vecino vecinoB = new Vecino(verticeB, peso);
+
+        verticeA.vecinos.agregaFinal(vecinoB);
+        verticeB.vecinos.agregaFinal(vecinoA);
+
+        aristas++;
     }
 
     /**
@@ -205,7 +265,23 @@ public class Grafica<T> implements Coleccion<T> {
      * @throws IllegalArgumentException si a o b no están conectados.
      */
     public void desconecta(T a, T b) {
-        // Aquí va su código.
+        
+        if(!(contiene(a) && contiene(b)))
+            throw new NoSuchElementException("Los vertices a desconectar no están en la grafica");
+
+        if(!sonVecinos(a, b))
+            throw new IllegalArgumentException("No se pueden desconectar 2 vertices ya desconectados");
+
+        Vertice vA_vertice = (Vertice)vertice(a);
+        Vertice vB_vertice = (Vertice)vertice(b);
+
+        Vecino vA_vecino = getVecino(vB_vertice, a);
+        Vecino vB_vecino = getVecino(vA_vertice, b);
+
+        vA_vertice.vecinos.elimina(vB_vecino);
+        vB_vertice.vecinos.elimina(vA_vecino);
+
+        aristas--;
     }
 
     /**
@@ -214,7 +290,11 @@ public class Grafica<T> implements Coleccion<T> {
      *         <code>false</code> en otro caso.
      */
     @Override public boolean contiene(T elemento) {
-        // Aquí va su código.
+        for(Vertice vertice: vertices){
+            if(vertice.elemento.equals(elemento))
+                return true; 
+        }
+        return false; 
     }
 
     /**
@@ -225,7 +305,19 @@ public class Grafica<T> implements Coleccion<T> {
      *         gráfica.
      */
     @Override public void elimina(T elemento) {
-        // Aquí va su código.
+        if(elemento == null)
+            throw new NoSuchElementException("El elemento a eliminar no puede ser nulo");
+
+        Vertice v_vertice = (Vertice)vertice(elemento);
+
+        vertices.elimina(v_vertice);
+
+        for(Vecino u: v_vertice.vecinos){
+            Vecino v_vecino = getVecino(u.vecino, elemento);
+            u.vecino.vecinos.elimina(v_vecino);
+            aristas--; 
+        }
+
     }
 
     /**
@@ -237,7 +329,19 @@ public class Grafica<T> implements Coleccion<T> {
      * @throws NoSuchElementException si a o b no son elementos de la gráfica.
      */
     public boolean sonVecinos(T a, T b) {
-        // Aquí va su código.
+        Vertice vA_vertice = (Vertice)vertice(a);
+        Vertice vB_vertice = (Vertice)vertice(b);
+
+        Vecino vB_vecino = getVecino(vA_vertice, b);
+        Vecino vA_vecino = getVecino(vB_vertice, a);
+
+        if(!(contiene(a) && contiene(b)))
+            throw new IllegalArgumentException("Los vertices no están en la gráfica");
+
+        if(vA_vertice.vecinos.contiene(vB_vecino) && vB_vertice.vecinos.contiene(vA_vecino))
+            return true; 
+
+        return false; 
     }
 
     /**
@@ -251,7 +355,16 @@ public class Grafica<T> implements Coleccion<T> {
      * @throws IllegalArgumentException si a o b no están conectados.
      */
     public double getPeso(T a, T b) {
-        // Aquí va su código.
+        if(!(contiene(a) && contiene(b)))
+            throw new NoSuchElementException("Los vertices a desconectar no están en la grafica");
+
+        if(!sonVecinos(a, b))
+            throw new IllegalArgumentException("No se pueden desconectar 2 vertices ya desconectados");
+
+        Vertice verticeA = (Vertice)vertice(a);
+        Vecino vecinoDe_A = getVecino(verticeA, b);
+
+        return vecinoDe_A.peso; 
     }
 
     /**
@@ -266,7 +379,36 @@ public class Grafica<T> implements Coleccion<T> {
      *         es menor o igual que cero.
      */
     public void setPeso(T a, T b, double peso) {
-        // Aquí va su código.
+        
+        if(!(contiene(a) && contiene(b)))
+            throw new NoSuchElementException("Los vertices a desconectar no están en la grafica");
+
+        if(!sonVecinos(a, b) || peso <= 0)
+            throw new IllegalArgumentException("No se pueden desconectar 2 vertices ya desconectados");
+
+        Vertice verticeA = (Vertice)vertice(a);
+        Vertice verticeB = (Vertice)vertice(b);
+
+        Vecino vecinoDe_A = getVecino(verticeA, b);
+        Vecino vecinoDe_B = getVecino(verticeB, a);
+
+        vecinoDe_A.peso = peso; 
+        vecinoDe_B.peso = peso;
+    }
+
+    /**
+     * Regresa el vecino del vertice correspondiente al elemento
+     * recibido.
+     * @param vertice vertice del cual se recorrerá su lista de vecinos.
+     * @param elemento elemento a buscar en los vecinos del vertice.
+     * @return el vecino del vertice correspondiente al elemento recibido. 
+     */
+    private Vecino getVecino(Vertice vertice, T elemento){
+        for(Vecino v: vertice.vecinos){
+            if(elemento.equals(v.vecino.elemento))
+                return v; 
+        }
+        return null; 
     }
 
     /**
@@ -276,7 +418,19 @@ public class Grafica<T> implements Coleccion<T> {
      * @return el vértice correspondiente el elemento recibido.
      */
     public VerticeGrafica<T> vertice(T elemento) {
-        // Aquí va su código.
+        Vertice verticeABuscar = null; 
+
+        for(Vertice vertice: vertices){
+            if(vertice.elemento.equals(elemento)){
+                verticeABuscar = vertice;
+                break;
+            }    
+        }
+
+        if(verticeABuscar == null)
+            throw new NoSuchElementException("El elemento no está en la grafica");
+
+        return (VerticeGrafica<T>)verticeABuscar;
     }
 
     /**
@@ -286,7 +440,21 @@ public class Grafica<T> implements Coleccion<T> {
      * @throws IllegalArgumentException si el vértice no es válido.
      */
     public void setColor(VerticeGrafica<T> vertice, Color color) {
-        // Aquí va su código.
+        if(vertice == null || 
+            (vertice.getClass() != Vertice.class) &&  
+            (vertice.getClass() !=  Vecino.class)){
+                throw new IllegalArgumentException("El vertice no es instancia de vertice");
+            }
+
+        if(vertice.getClass() == Vertice.class){
+            Vertice v = (Vertice)vertice; 
+            v.color = color; 
+        }
+
+        if(vertice.getClass() == Vecino.class){
+            Vecino v = (Vecino)vertice;
+            v.vecino.color = color; 
+        }
     }
 
     /**
@@ -295,7 +463,12 @@ public class Grafica<T> implements Coleccion<T> {
      *         otro caso.
      */
     public boolean esConexa() {
-        // Aquí va su código.
+        bfs(vertices.getPrimero().elemento, v -> {});
+        for(Vertice vertice: vertices){
+            if(vertice.color == Color.ROJO)
+                return false; 
+        }
+        return true; 
     }
 
     /**
@@ -304,7 +477,8 @@ public class Grafica<T> implements Coleccion<T> {
      * @param accion la acción a realizar.
      */
     public void paraCadaVertice(AccionVerticeGrafica<T> accion) {
-        // Aquí va su código.
+        for(Vertice vertice: vertices)
+            accion.actua(vertice);
     }
 
     /**
@@ -318,7 +492,10 @@ public class Grafica<T> implements Coleccion<T> {
      * @throws NoSuchElementException si el elemento no está en la gráfica.
      */
     public void bfs(T elemento, AccionVerticeGrafica<T> accion) {
-        // Aquí va su código.
+        Vertice vertice = (Vertice)vertice(elemento);
+        Cola<Vertice> cola = new Cola<Vertice>(); 
+
+        recorreGrafica(vertice, cola, accion);
     }
 
     /**
@@ -332,7 +509,38 @@ public class Grafica<T> implements Coleccion<T> {
      * @throws NoSuchElementException si el elemento no está en la gráfica.
      */
     public void dfs(T elemento, AccionVerticeGrafica<T> accion) {
-        // Aquí va su código.
+        Vertice vertice = (Vertice)vertice(elemento);
+        Pila<Vertice> pila = new Pila<Vertice>(); 
+
+        recorreGrafica(vertice, pila, accion);
+    }
+
+    /**
+     * Metodo auxiliar para implementar BFS o DFS
+     * Recorre la grafica con una estructucura de datos, pintando cada 
+     * vertice en el recorrido para saber si este ya fue visitado o no.
+     * @param vertice el vertice con el que se comienza el recorrido.
+     * @param estructura una instancia de MeteSaca<T> (una pila o cola).
+     * @param accion la accion a realizar para cada vertice de la gráfica.
+     */
+    private void recorreGrafica(Vertice vertice, MeteSaca<Vertice> estructura,
+                 AccionVerticeGrafica<T> accion){
+        for(Vertice v: vertices)
+            v.color = Color.ROJO; 
+        
+        vertice.color = Color.NINGUNO; 
+        estructura.mete(vertice);
+
+        while(!estructura.esVacia()){
+            vertice = estructura.saca();
+            accion.actua(vertice);
+            for(Vecino u: vertice.vecinos){
+                if(u.vecino.color == Color.ROJO){
+                    u.vecino.color = Color.NINGUNO; 
+                    estructura.mete(u.vecino);
+                }
+            }
+        }
     }
 
     /**
@@ -341,14 +549,15 @@ public class Grafica<T> implements Coleccion<T> {
      *         otro caso.
      */
     @Override public boolean esVacia() {
-        // Aquí va su código.
+        return vertices.esVacia(); 
     }
 
     /**
      * Limpia la gráfica de vértices y aristas, dejándola vacía.
      */
     @Override public void limpia() {
-        // Aquí va su código.
+        vertices.limpia();
+        aristas = 0; 
     }
 
     /**
@@ -356,7 +565,23 @@ public class Grafica<T> implements Coleccion<T> {
      * @return una representación en cadena de la gráfica.
      */
     @Override public String toString() {
-        // Aquí va su código.
+        String s = "{";
+    
+        for(Vertice vertice: vertices)
+            s += vertice.elemento.toString() + ", ";
+        
+        s += "}, {";
+
+        for(Vertice u: vertices){
+            for(Vecino w: u.vecinos){
+                if(s.contains("(" + w.vecino.elemento.toString()))
+                    continue;
+                s += "(" + u.elemento.toString() + ", " + w.vecino.elemento.toString() + "), ";
+            }
+        }
+
+        s += "}";
+        return s; 
     }
 
     /**
@@ -369,8 +594,43 @@ public class Grafica<T> implements Coleccion<T> {
         if (objeto == null || getClass() != objeto.getClass())
             return false;
         @SuppressWarnings("unchecked") Grafica<T> grafica = (Grafica<T>)objeto;
-        // Aquí va su código.
+        
+        return (getElementos() == grafica.getElementos() &&
+               aristas == grafica.getAristas() &&
+               verificaElementosIguales(grafica) &&
+               verificaAristasIguales(grafica));
     }
+
+    /**
+     * Nos dice si las graficas comparadas contienen los mismos 
+     * elementos, no necesariamente en el mismo orden.
+     * @param grafica una gráfica para comparar elementos.
+     * @return <code>true</code> si los elmentos de las 2 graficas son iguales,
+     *         <code>false</code> en otro caso. 
+     */
+    private boolean verificaElementosIguales(Grafica<T> grafica){
+        
+        for(Vertice vertice: vertices){
+            try{
+                VerticeGrafica<T> u = grafica.vertice(vertice.elemento);
+            }
+            catch(NoSuchElementException e){
+                return false; 
+            }
+        }
+        return true; 
+    }
+
+    private boolean verificaAristasIguales(Grafica<T> grafica){ 
+        for(Vertice vertice: vertices){
+            for(Vecino vecino_vertice: vertice.vecinos){
+                if(!grafica.sonVecinos(vertice.elemento, vecino_vertice.vecino.elemento))
+                    return false;
+            }
+        }
+        return true; 
+    }
+
 
     /**
      * Regresa un iterador para iterar la gráfica. La gráfica se itera en el
@@ -393,7 +653,59 @@ public class Grafica<T> implements Coleccion<T> {
      *         la gráfica.
      */
     public Lista<VerticeGrafica<T>> trayectoriaMinima(T origen, T destino) {
-        // Aquí va su código.
+        if(!contiene(origen))
+            throw new NoSuchElementException("El vertice " + origen + " no está en la gráfica");
+
+        if(!contiene(destino))
+            throw new NoSuchElementException("El vertice " + destino + " no está en la gráfica");
+
+        Vertice verticeOrigen = (Vertice)vertice(origen);
+        Vertice verticeDestino = (Vertice)vertice(destino);
+
+        Lista<VerticeGrafica<T>> trayectoria = new Lista<>();
+
+        if(origen.equals(destino)){
+            trayectoria.agregaFinal((VerticeGrafica<T>)verticeOrigen);
+            return trayectoria; 
+        }
+
+        for(Vertice vertice: vertices)
+            vertice.distancia = Double.MAX_VALUE; 
+            
+        verticeOrigen.distancia = 0; 
+        
+        Cola<Vertice> cola = new Cola<>(); 
+        cola.mete(verticeOrigen);
+
+        Vertice vertice;
+
+        while(!cola.esVacia()){
+            vertice = cola.saca(); 
+            for(Vecino v: vertice.vecinos){
+                if(v.vecino.distancia == Double.MAX_VALUE){
+                    v.vecino.distancia = vertice.distancia + 1;
+                    cola.mete(v.vecino);
+                }
+            }
+        }
+
+        if(verticeDestino.distancia == Double.MAX_VALUE)
+            return trayectoria; 
+        
+        Vertice u = verticeDestino;
+        trayectoria.agregaInicio((VerticeGrafica<T>)u);
+
+        while(!(u.elemento.equals(origen))){
+            for(Vecino v: u.vecinos){
+                if(u.distancia == v.vecino.distancia + 1){
+                    trayectoria.agregaInicio((VerticeGrafica<T>)v.vecino);
+                    u = v.vecino;
+                    break; 
+                }
+            }
+        }
+        
+        return trayectoria;      
     }
 
     /**
@@ -408,6 +720,60 @@ public class Grafica<T> implements Coleccion<T> {
      *         la gráfica.
      */
     public Lista<VerticeGrafica<T>> dijkstra(T origen, T destino) {
-        // Aquí va su código.
+
+        if(!contiene(origen))
+            throw new NoSuchElementException("El vertice " + origen + " no está en la gráfica");
+
+        if(!contiene(destino))
+            throw new NoSuchElementException("El vertice " + destino + " no está en la gráfica");
+
+        Vertice verticeOrigen = (Vertice)vertice(origen);
+        Vertice verticeDestino = (Vertice)vertice(destino);
+
+        Lista<VerticeGrafica<T>> trayectoria = new Lista<>();
+
+        if(origen.equals(destino)){
+            trayectoria.agregaFinal((VerticeGrafica<T>)verticeOrigen);
+            return trayectoria; 
+        }
+
+        for(Vertice vertice: vertices)
+            vertice.distancia = Double.MAX_VALUE; 
+
+        verticeOrigen.distancia = 0; 
+
+        MonticuloMinimo<Vertice> monticulo = 
+        new MonticuloMinimo<Vertice>(vertices, vertices.getLongitud());
+
+        Vertice vertice; 
+
+        while(!monticulo.esVacia()){
+            vertice = monticulo.elimina(); 
+            for(Vecino v: vertice.vecinos){
+                if(v.vecino.distancia > vertice.distancia + v.peso){
+                    v.vecino.distancia = vertice.distancia + v.peso;
+                    monticulo.reordena(v.vecino);
+                }
+            }
+        }
+
+        if(verticeDestino.distancia == Double.MAX_VALUE)
+            return trayectoria; 
+
+        Vertice u = verticeDestino; 
+        trayectoria.agregaInicio((VerticeGrafica<T>)u);
+
+        while(!(u.elemento.equals(origen))){
+            for(Vecino v: u.vecinos){
+                if(u.distancia == v.vecino.distancia + v.peso){
+                    trayectoria.agregaInicio((VerticeGrafica<T>)v.vecino);
+                    u = v.vecino;
+                    break; 
+                }
+            }
+        }
+        
+        return trayectoria;  
+
     }
 }
